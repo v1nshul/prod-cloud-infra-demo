@@ -2,7 +2,7 @@
 
 A production-ready, cost-minimized reference DevOps project designed for UK startups and SMEs. This project demonstrates CI/CD pipelines, containerized application deployment to AWS, Kubernetes orchestration, and GitOps-style deployments—all optimized for **AWS free tier or near-free tier** while maintaining professional standards.
 
-## 🎯 Project Overview
+##  Project Overview
 
 This project serves as a **reference implementation** for solo DevOps consultants offering CI/CD and cloud infrastructure services. It's designed to:
 
@@ -11,7 +11,7 @@ This project serves as a **reference implementation** for solo DevOps consultant
 - **Be practical**: Easy to destroy and recreate, fully documented, suitable as a portfolio demo
 - **Solve real problems**: Address common startup infrastructure needs without enterprise complexity
 
-## 🏗️ Architecture
+##  Architecture
 
 ### High-Level Design
 
@@ -68,7 +68,7 @@ This project serves as a **reference implementation** for solo DevOps consultant
 7. **Deployment**: Kubernetes manifests with Kustomize for environment-specific configurations
 8. **Observability**: Health checks, application logs via `kubectl`
 
-## 💡 Why k3s Instead of EKS?
+##  Why k3s Instead of EKS?
 
 ### Cost Optimization (Primary Reason)
 
@@ -112,7 +112,7 @@ For **early-stage startups and demos**, this architecture is ideal because:
 - Traffic exceeds single-node capacity
 - Team has budget for managed services
 
-## 🚀 What Problems Does This Solve?
+##  What Problems Does This Solve?
 
 For **startup founders**, this setup provides:
 
@@ -131,7 +131,7 @@ For **DevOps consultants**, this demonstrates:
 4. **Documentation skills**: Clear, client-facing documentation
 5. **Practical solutions**: Real-world architecture for real budgets
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 .
@@ -162,7 +162,7 @@ For **DevOps consultants**, this demonstrates:
 └── OPERATIONS.md       # Operations and troubleshooting
 ```
 
-## 🛠️ Technology Stack
+##  Technology Stack
 
 - **Application**: Python 3.11, FastAPI, Uvicorn
 - **Container**: Docker (multi-stage builds)
@@ -173,7 +173,7 @@ For **DevOps consultants**, this demonstrates:
 - **Load Balancing**: NGINX Ingress Controller
 - **Configuration Management**: Kustomize
 
-## 💰 Cost Estimate
+##  Cost Estimate
 
 **Monthly AWS costs (approximate)**:
 - EC2 t3.micro: **$0/month** (free tier) or t3.small: ~$15/month
@@ -186,13 +186,13 @@ For **DevOps consultants**, this demonstrates:
 - **k3s setup: ~$10-15/month**
 - **Savings: ~$90-100/month (85-90% reduction)**
 
-## 📚 Documentation
+##  Documentation
 
 - **[DEPLOYMENT.md](DEPLOYMENT.md)**: Step-by-step setup and deployment instructions
 - **[OPERATIONS.md](OPERATIONS.md)**: CI/CD workflows, rollback procedures, troubleshooting
 - **[QUICKSTART.md](QUICKSTART.md)**: Quick reference for common tasks
 
-## 🔒 Security Considerations
+##  Security Considerations
 
 - **No hardcoded secrets**: Uses Kubernetes Secrets and GitHub Secrets
 - **SSH key management**: Terraform generates and manages SSH keys
@@ -201,7 +201,7 @@ For **DevOps consultants**, this demonstrates:
 - **Network isolation**: VPC with security groups
 - **Encrypted storage**: EBS volumes encrypted
 
-## 🎓 Learning Resources
+##  Learning Resources
 
 This project demonstrates:
 - Infrastructure as Code with Terraform
@@ -211,11 +211,11 @@ This project demonstrates:
 - GitOps-style deployments
 - Production-ready application structure
 
-## 📝 License
+##  License
 
 This is a reference implementation project. Use it as a baseline for your own projects.
 
-## 🤝 Contributing
+##  Contributing
 
 This is a reference project. Feel free to fork and adapt for your needs.
 
