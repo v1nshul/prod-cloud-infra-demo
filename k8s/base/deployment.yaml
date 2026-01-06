@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  namespace: prod-cloud-infra-demo
+  labels:
+    app: prod-cloud-infra-demo
+spec:
+  replicas: 2  # Minimal replicas for cost efficiency
+  selector:
+    matchLabels:
+      app: prod-cloud-infra-demo
+  template:
+    metadata:
+      labels:
+        app: prod-cloud-infra-demo
+    spec:
+      containers:
+      - name: app
+        image: ghcr.io/YOUR_GITHUB_USERNAME/prod-cloud-infra-demo:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: ENVIRONMENT
+          value: "production"  # Override in staging
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+      # Image pull secret for GHCR (optional, can use public images)
+      # imagePullSecrets:
+      # - name: ghcr-secret
+

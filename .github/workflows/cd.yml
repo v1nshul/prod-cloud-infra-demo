@@ -1,0 +1,272 @@
+name: CD - Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=sha,prefix=,format=long
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Generate image tag
+      id: image-tag
+      run: |
+        if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+          echo "tag=latest" >> $GITHUB_OUTPUT
+        else
+          echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  deploy-staging:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-2
+
+    - name: Get k3s instance public IP
+      id: get-ip
+      run: |
+        INSTANCE_IP=$(aws ec2 describe-instances \
+          --filters "Name=tag:Name,Values=prod-cloud-infra-demo-k3s" "Name=instance-state-name,Values=running" \
+          --query 'Reservations[0].Instances[0].PublicIpAddress' \
+          --output text \
+          --region eu-west-2)
+        echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
+        echo "k3s instance IP: $INSTANCE_IP"
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+
+    - name: Configure kubectl for k3s
+      run: |
+        # Create kubeconfig directory
+        mkdir -p ~/.kube
+        
+        # Write kubeconfig from secret (user must add K3S_KUBECONFIG secret)
+        echo "${{ secrets.K3S_KUBECONFIG }}" | base64 -d > ~/.kube/config || echo "${{ secrets.K3S_KUBECONFIG }}" > ~/.kube/config
+        
+        # Update server URL to use public IP
+        sed -i "s|127.0.0.1|${{ steps.get-ip.outputs.instance_ip }}|g" ~/.kube/config
+        sed -i "s|localhost|${{ steps.get-ip.outputs.instance_ip }}|g" ~/.kube/config
+        
+        # Verify connection
+        kubectl get nodes
+
+    - name: Set up kustomize
+      uses: imranismail/setup-kustomize@v2
+      with:
+        version: '5.0.0'
+
+    - name: Deploy to staging
+      id: deploy
+      run: |
+        # Determine image tag
+        IMAGE_TAG="latest"
+        if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+          IMAGE_TAG="${{ github.sha }}"
+        fi
+        
+        # Update image tag in deployment
+        cd k8s/staging
+        kustomize edit set image ghcr.io/${{ env.IMAGE_NAME }}:${IMAGE_TAG}
+        
+        # Apply manifests
+        kubectl apply -k .
+        
+        # Wait for deployment
+        kubectl rollout status deployment/app -n prod-cloud-infra-demo-staging --timeout=5m
+        
+        # Get application URL (NGINX ingress uses NodePort, accessible via EC2 public IP)
+        APP_URL="http://${{ steps.get-ip.outputs.instance_ip }}"
+        echo "url=$APP_URL" >> $GITHUB_OUTPUT
+        echo "Application deployed and accessible at: $APP_URL"
+
+  deploy-production:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-2
+
+    - name: Get k3s instance public IP
+      id: get-ip
+      run: |
+        INSTANCE_IP=$(aws ec2 describe-instances \
+          --filters "Name=tag:Name,Values=prod-cloud-infra-demo-k3s" "Name=instance-state-name,Values=running" \
+          --query 'Reservations[0].Instances[0].PublicIpAddress' \
+          --output text \
+          --region eu-west-2)
+        echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
+        echo "k3s instance IP: $INSTANCE_IP"
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+
+    - name: Configure kubectl for k3s
+      run: |
+        # Create kubeconfig directory
+        mkdir -p ~/.kube
+        
+        # Write kubeconfig from secret (user must add K3S_KUBECONFIG secret)
+        echo "${{ secrets.K3S_KUBECONFIG }}" | base64 -d > ~/.kube/config || echo "${{ secrets.K3S_KUBECONFIG }}" > ~/.kube/config
+        
+        # Update server URL to use public IP
+        sed -i "s|127.0.0.1|${{ steps.get-ip.outputs.instance_ip }}|g" ~/.kube/config
+        sed -i "s|localhost|${{ steps.get-ip.outputs.instance_ip }}|g" ~/.kube/config
+        
+        # Verify connection
+        kubectl get nodes
+
+    - name: Set up kustomize
+      uses: imranismail/setup-kustomize@v2
+      with:
+        version: '5.0.0'
+
+    - name: Deploy to production
+      id: deploy
+      run: |
+        # Determine image tag
+        IMAGE_TAG="latest"
+        if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+          IMAGE_TAG="${{ github.sha }}"
+        fi
+        
+        # Update image tag in deployment
+        cd k8s/production
+        kustomize edit set image ghcr.io/${{ env.IMAGE_NAME }}:${IMAGE_TAG}
+        
+        # Apply manifests
+        kubectl apply -k .
+        
+        # Wait for deployment
+        kubectl rollout status deployment/app -n prod-cloud-infra-demo --timeout=5m
+        
+        # Get application URL (NGINX ingress uses NodePort, accessible via EC2 public IP)
+        APP_URL="http://${{ steps.get-ip.outputs.instance_ip }}"
+        echo "url=$APP_URL" >> $GITHUB_OUTPUT
+        echo "Application deployed and accessible at: $APP_URL"
+
+  rollback:
+    needs: [deploy-staging, deploy-production]
+    runs-on: ubuntu-latest
+    if: failure() && (needs.deploy-staging.result == 'failure' || needs.deploy-production.result == 'failure')
+    
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-2
+
+    - name: Get k3s instance public IP
+      id: get-ip
+      run: |
+        INSTANCE_IP=$(aws ec2 describe-instances \
+          --filters "Name=tag:Name,Values=prod-cloud-infra-demo-k3s" "Name=instance-state-name,Values=running" \
+          --query 'Reservations[0].Instances[0].PublicIpAddress' \
+          --output text \
+          --region eu-west-2)
+        echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+
+    - name: Configure kubectl for k3s
+      run: |
+        mkdir -p ~/.kube
+        echo "${{ secrets.K3S_KUBECONFIG }}" | base64 -d > ~/.kube/config || echo "${{ secrets.K3S_KUBECONFIG }}" > ~/.kube/config
+        sed -i "s|127.0.0.1|${{ steps.get-ip.outputs.instance_ip }}|g" ~/.kube/config
+        sed -i "s|localhost|${{ steps.get-ip.outputs.instance_ip }}|g" ~/.kube/config
+
+    - name: Rollback deployment
+      run: |
+        # Determine which environment failed
+        if [ "${{ needs.deploy-staging.result }}" == "failure" ]; then
+          kubectl rollout undo deployment/app -n prod-cloud-infra-demo-staging
+          echo "Rolled back staging deployment"
+        fi
+        if [ "${{ needs.deploy-production.result }}" == "failure" ]; then
+          kubectl rollout undo deployment/app -n prod-cloud-infra-demo
+          echo "Rolled back production deployment"
+        fi

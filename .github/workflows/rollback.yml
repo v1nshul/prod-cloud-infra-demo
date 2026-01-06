@@ -1,0 +1,67 @@
+name: Manual Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to rollback'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      revision:
+        description: 'Revision number to rollback to (leave empty for previous)'
+        required: false
+        type: string
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-2
+
+    - name: Get k3s instance public IP
+      id: get-ip
+      run: |
+        INSTANCE_IP=$(aws ec2 describe-instances \
+          --filters "Name=tag:Name,Values=prod-cloud-infra-demo-k3s" "Name=instance-state-name,Values=running" \
+          --query 'Reservations[0].Instances[0].PublicIpAddress' \
+          --output text \
+          --region eu-west-2)
+        echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+
+    - name: Configure kubectl for k3s
+      run: |
+        mkdir -p ~/.kube
+        echo "${{ secrets.K3S_KUBECONFIG }}" | base64 -d > ~/.kube/config || echo "${{ secrets.K3S_KUBECONFIG }}" > ~/.kube/config
+        sed -i "s|127.0.0.1|${{ steps.get-ip.outputs.instance_ip }}|g" ~/.kube/config
+        sed -i "s|localhost|${{ steps.get-ip.outputs.instance_ip }}|g" ~/.kube/config
+
+    - name: Rollback deployment
+      run: |
+        NAMESPACE="prod-cloud-infra-demo"
+        if [ "${{ github.event.inputs.environment }}" == "staging" ]; then
+          NAMESPACE="prod-cloud-infra-demo-staging"
+        fi
+        
+        if [ -z "${{ github.event.inputs.revision }}" ]; then
+          echo "Rolling back to previous revision..."
+          kubectl rollout undo deployment/app -n $NAMESPACE
+        else
+          echo "Rolling back to revision ${{ github.event.inputs.revision }}..."
+          kubectl rollout undo deployment/app -n $NAMESPACE --to-revision=${{ github.event.inputs.revision }}
+        fi
+        
+        kubectl rollout status deployment/app -n $NAMESPACE --timeout=5m
+        echo "Rollback completed successfully"

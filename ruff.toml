@@ -1,0 +1,11 @@
+# Ruff configuration for Python linting
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "I", "N", "UP"]
+ignore = []
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]
+

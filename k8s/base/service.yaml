@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-service
+  namespace: prod-cloud-infra-demo
+  labels:
+    app: prod-cloud-infra-demo
+spec:
+  type: ClusterIP  # Use ClusterIP to avoid LoadBalancer costs
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: prod-cloud-infra-demo
+
