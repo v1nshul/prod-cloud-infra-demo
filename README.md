@@ -40,14 +40,14 @@ This project serves as a **reference implementation** for solo DevOps consultant
 │  AWS EC2         │
 │  (t3.micro)      │
 │  ┌─────────────┐ │
-│  │   k3s        │ │
-│  │ Kubernetes   │ │
-│  │  ┌─────────┐ │ │
-│  │  │Staging  │ │ │
-│  │  └─────────┘ │ │
-│  │  ┌─────────┐ │ │
-│  │  │Production│ │ │
-│  │  └─────────┘ │ │
+│  │   k3s       │ │
+│  │ Kubernetes  │ │
+│  │  ┌─────────┐│ │
+│  │  │Staging  ││ │
+│  │  └─────────┘│ │
+│  │  ┌─────────┐│ │
+│  │  │Production│ │
+│  │  └─────────┘│ │
 │  └─────────────┘ │
 └────────┬────────┘
          │
