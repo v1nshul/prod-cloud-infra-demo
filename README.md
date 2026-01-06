@@ -2,6 +2,8 @@
 
 A production-ready, cost-minimized reference DevOps project designed for UK startups and SMEs. This project demonstrates CI/CD pipelines, containerized application deployment to AWS, Kubernetes orchestration, and GitOps-style deployments—all optimized for **AWS free tier or near-free tier** while maintaining professional standards.
 
+In this reference setup, staging and production run on the same cluster for cost efficiency. In real client engagements, production would typically run on a separate node or cluster.
+
 ##  Project Overview
 
 This project serves as a **reference implementation** for solo DevOps consultants offering CI/CD and cloud infrastructure services. It's designed to:
@@ -56,6 +58,9 @@ This project serves as a **reference implementation** for solo DevOps consultant
 │  (HTTP/HTTPS)   │
 └─────────────────┘
 ```
+In this reference implementation, staging and production environments run as separate Kubernetes namespaces on the same cluster. This design choice is intentional to minimise cost and operational overhead for demos and early-stage startups.
+
+In real client deployments, production would typically run on a separate node or a separate cluster to provide stronger isolation, higher availability, and clearer blast-radius control. This project demonstrates the deployment patterns and workflows, while keeping infrastructure cost low for demonstration purposes.
 
 ### Components
 
