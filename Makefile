@@ -16,14 +16,10 @@ format: ## Format code
 	ruff format app/ tests/
 
 docker-build: ## Build Docker image
-	docker build -t ghcr.io/$(GITHUB_USERNAME)/prod-cloud-infra-demo:latest .
+	docker build -t ghcr.io/v1nshul/prod-cloud-infra-demo:latest .
 
 docker-push: ## Push Docker image to GHCR
-	@if [ -z "$(GITHUB_USERNAME)" ]; then \
-		echo "Error: GITHUB_USERNAME not set. Usage: make docker-push GITHUB_USERNAME=your-username"; \
-		exit 1; \
-	fi
-	docker push ghcr.io/$(GITHUB_USERNAME)/prod-cloud-infra-demo:latest
+	docker push ghcr.io/v1nshul/prod-cloud-infra-demo:latest
 
 deploy-staging: ## Deploy to staging (requires kubectl configured)
 	kubectl apply -k k8s/staging

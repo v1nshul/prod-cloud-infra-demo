@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: app
-        image: ghcr.io/YOUR_GITHUB_USERNAME/prod-cloud-infra-demo:latest
+        image: ghcr.io/v1nshul/prod-cloud-infra-demo:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8000

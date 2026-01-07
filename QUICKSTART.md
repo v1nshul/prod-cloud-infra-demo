@@ -20,9 +20,9 @@ python --version  # Should be 3.11+
 aws configure
 ```
 
-2. **Set GitHub username** in `k8s/base/deployment.yaml`:
+2. **Verify container image** in `k8s/base/deployment.yaml`:
 ```yaml
-image: ghcr.io/YOUR_GITHUB_USERNAME/prod-cloud-infra-demo:latest
+image: ghcr.io/v1nshul/prod-cloud-infra-demo:latest
 ```
 
 3. **Configure Terraform**:
@@ -92,7 +92,7 @@ make test
 make lint
 
 # Build Docker image
-make docker-build GITHUB_USERNAME=your-username
+make docker-build
 
 # Deploy to staging
 make deploy-staging

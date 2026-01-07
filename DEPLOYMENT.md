@@ -35,20 +35,19 @@ cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 aws_region        = "eu-west-2"
 project_name      = "prod-cloud-infra-demo"
 environment       = "production"
-github_username   = "your-github-username"
+github_username   = "v1nshul"
 
 # EC2 instance configuration (free tier or near-free tier)
 instance_type     = "t3.micro"  # Free tier eligible, or t3.small for better performance
 disk_size         = 20         # Free tier eligible (20GB)
 ```
 
-## Step 3: Update Kubernetes Manifests
+## Step 3: Verify Kubernetes Manifests
 
-1. Update the container image in `k8s/base/deployment.yaml`:
+1. Verify the container image in `k8s/base/deployment.yaml`:
 ```yaml
-image: ghcr.io/YOUR_GITHUB_USERNAME/prod-cloud-infra-demo:latest
+image: ghcr.io/v1nshul/prod-cloud-infra-demo:latest
 ```
-Replace `YOUR_GITHUB_USERNAME` with your actual GitHub username.
 
 ## Step 4: Configure GitHub Secrets
 
@@ -211,13 +210,13 @@ Before CI/CD takes over, deploy manually to verify everything works:
 1. Build and push the Docker image:
 ```bash
 # Build locally
-docker build -t ghcr.io/YOUR_GITHUB_USERNAME/prod-cloud-infra-demo:latest .
+docker build -t ghcr.io/v1nshul/prod-cloud-infra-demo:latest .
 
 # Login to GHCR
-echo $GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+echo $GITHUB_TOKEN | docker login ghcr.io -u v1nshul --password-stdin
 
 # Push
-docker push ghcr.io/YOUR_GITHUB_USERNAME/prod-cloud-infra-demo:latest
+docker push ghcr.io/v1nshul/prod-cloud-infra-demo:latest
 ```
 
 2. Deploy to staging:

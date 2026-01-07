@@ -17,7 +17,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: v1nshul/prod-cloud-infra-demo
 
 jobs:
   build-and-push:

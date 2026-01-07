@@ -4,7 +4,7 @@
 aws_region        = "eu-west-2"
 project_name      = "prod-cloud-infra-demo"
 environment       = "production"
-github_username   = "your-github-username"
+github_username   = "v1nshul"
 
 # EC2 instance configuration (free tier or near-free tier)
 instance_type     = "t3.micro"  # Free tier eligible, or t3.small for better performance
