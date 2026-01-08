@@ -40,6 +40,7 @@ provider "aws" {
       Project     = "prod-cloud-infra-demo"
       ManagedBy   = "terraform"
       Environment = var.environment
+      Owner       = var.owner != "" ? var.owner : var.github_username
     }
   }
 }
@@ -128,7 +129,7 @@ resource "aws_security_group" "k3s" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # Restrict in production
+    cidr_blocks = [var.allowed_ssh_cidr]
   }
 
   # HTTP for NGINX ingress
@@ -190,11 +191,11 @@ resource "local_file" "private_key" {
 
 # EC2 Key Pair
 resource "aws_key_pair" "k3s" {
-  key_name   = "${var.project_name}-k3s-key"
+  key_name   = var.key_pair_name != "" ? var.key_pair_name : "${var.project_name}-k3s-key"
   public_key = tls_private_key.k3s_ssh.public_key_openssh
 
   tags = {
-    Name = "${var.project_name}-k3s-key"
+    Name = var.key_pair_name != "" ? var.key_pair_name : "${var.project_name}-k3s-key"
   }
 }
 

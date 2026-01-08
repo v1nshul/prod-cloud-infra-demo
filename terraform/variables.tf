@@ -35,13 +35,31 @@ variable "github_username" {
 }
 
 variable "kubeconfig_path" {
-  description = "Path to kubeconfig file for k3s (set after initial setup)"
+  description = "Path to kubeconfig file for k3s (set after initial setup). Leave empty to use KUBECONFIG environment variable."
   type        = string
-  default     = "~/.kube/k3s-config"
+  default     = ""  # Empty by default - use KUBECONFIG env var until file is created
 }
 
 variable "create_namespaces" {
   description = "Whether to create namespaces via Terraform (namespaces are created by k3s install script)"
   type        = bool
   default     = false
+}
+
+variable "key_pair_name" {
+  description = "Name for the AWS EC2 key pair (optional, defaults to project-based name)"
+  type        = string
+  default     = ""
+}
+
+variable "allowed_ssh_cidr" {
+  description = "CIDR block allowed to SSH into the EC2 instance"
+  type        = string
+  default     = "0.0.0.0/0"  # Restrict in production
+}
+
+variable "owner" {
+  description = "Owner tag value for resources"
+  type        = string
+  default     = ""
 }
