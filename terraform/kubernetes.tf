@@ -13,14 +13,20 @@ data "aws_instance" "k3s" {
 
 # Kubernetes provider - configured via environment or kubeconfig file
 # After initial setup, use: export KUBECONFIG=~/.kube/k3s-config
+# Note: The kubeconfig file will be created after the EC2 instance is provisioned
+# If config_path is empty, provider will use KUBECONFIG environment variable
+# For initial terraform apply, leave kubeconfig_path empty or unset KUBECONFIG env var
 provider "kubernetes" {
-  config_path = var.kubeconfig_path
+  # Only set config_path if explicitly provided (non-empty)
+  # If null/empty, provider will use KUBECONFIG environment variable
+  # This allows terraform apply to work before kubeconfig file exists
+  config_path = var.kubeconfig_path != "" ? var.kubeconfig_path : null
   # Alternatively, configure via host, token, and ca_certificate if available
 }
 
 provider "helm" {
   kubernetes {
-    config_path = var.kubeconfig_path
+    config_path = var.kubeconfig_path != "" ? var.kubeconfig_path : null
   }
 }
 
