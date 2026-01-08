@@ -181,10 +181,10 @@ jobs:
           set -e
           
           # Apply manifests
-          sudo kubectl apply -f /tmp/staging-manifests.yaml
+          sudo k3s kubectl apply -f /tmp/staging-manifests.yaml
           
           # Wait for deployment rollout
-          sudo kubectl rollout status deployment/app -n prod-cloud-infra-demo-staging --timeout=5m
+          sudo k3s kubectl rollout status deployment/app -n prod-cloud-infra-demo-staging --timeout=5m
           
           echo 'Deployment completed successfully'
         EOF
@@ -278,10 +278,10 @@ jobs:
           set -e
           
           # Apply manifests
-          sudo kubectl apply -f /tmp/production-manifests.yaml
+          sudo k3s kubectl apply -f /tmp/production-manifests.yaml
           
           # Wait for deployment rollout
-          sudo kubectl rollout status deployment/app -n prod-cloud-infra-demo --timeout=5m
+          sudo k3s kubectl rollout status deployment/app -n prod-cloud-infra-demo --timeout=5m
           
           echo 'Deployment completed successfully'
         EOF
@@ -341,15 +341,15 @@ jobs:
           
           if [ '${{ needs.deploy-staging.result }}' == 'failure' ]; then
             echo 'Rolling back staging deployment...'
-            sudo kubectl rollout undo deployment/app -n prod-cloud-infra-demo-staging
-            sudo kubectl rollout status deployment/app -n prod-cloud-infra-demo-staging --timeout=5m
+            sudo k3s kubectl rollout undo deployment/app -n prod-cloud-infra-demo-staging
+            sudo k3s kubectl rollout status deployment/app -n prod-cloud-infra-demo-staging --timeout=5m
             echo 'Rolled back staging deployment'
           fi
           
           if [ '${{ needs.deploy-production.result }}' == 'failure' ]; then
             echo 'Rolling back production deployment...'
-            sudo kubectl rollout undo deployment/app -n prod-cloud-infra-demo
-            sudo kubectl rollout status deployment/app -n prod-cloud-infra-demo --timeout=5m
+            sudo k3s kubectl rollout undo deployment/app -n prod-cloud-infra-demo
+            sudo k3s kubectl rollout status deployment/app -n prod-cloud-infra-demo --timeout=5m
             echo 'Rolled back production deployment'
           fi
         EOF
