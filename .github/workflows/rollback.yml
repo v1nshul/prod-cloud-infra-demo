@@ -1,5 +1,28 @@
 name: Manual Rollback
 
+# AWS Authentication Configuration
+# This workflow uses static AWS credentials stored as GitHub Secrets:
+#   - AWS_ACCESS_KEY_ID
+#   - AWS_SECRET_ACCESS_KEY
+#
+# To migrate to OIDC authentication (recommended for production):
+# 1. Configure OIDC in AWS IAM: https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services
+# 2. Update the "Configure AWS credentials" step to use:
+#    - role-to-assume: arn:aws:iam::ACCOUNT_ID:role/GITHUB_ROLE_NAME
+#    - role-session-name: GitHubActions-${{ github.run_id }}
+#    - Remove: aws-access-key-id and aws-secret-access-key
+# 3. Remove the corresponding secrets from GitHub repository settings
+# 4. Update job permissions to include id-token: write
+#
+# Kubernetes Rollback Strategy
+# This workflow uses SSH-based remote execution to run kubectl commands on the k3s EC2 instance.
+# This approach:
+#   - Avoids exposing kubeconfig files in GitHub Secrets
+#   - Uses k3s's default kubeconfig at /etc/rancher/k3s/k3s.yaml automatically
+#   - Ensures kubectl runs where k3s is installed, avoiding localhost:8080 issues
+#   - Maintains security by not requiring direct Kubernetes API access from GitHub Actions
+# Required secret: SSH_PRIVATE_KEY (from terraform output ssh_private_key_path)
+
 on:
   workflow_dispatch:
     inputs:
@@ -21,12 +44,17 @@ jobs:
     environment: ${{ github.event.inputs.environment }}
 
     steps:
+    # Configure AWS credentials using static credentials from GitHub Secrets
+    # Required secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+    # Note: For enhanced security, consider migrating to OIDC authentication in the future
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: eu-west-2
+        # Export credentials to environment variables for subsequent steps
+        output-env-credentials: true
 
     - name: Get k3s instance public IP
       id: get-ip
@@ -38,30 +66,40 @@ jobs:
           --region eu-west-2)
         echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
 
-    - name: Set up kubectl
-      uses: azure/setup-kubectl@v3
-
-    - name: Configure kubectl for k3s
+    # Setup SSH key for remote access to EC2 instance
+    # Required secret: SSH_PRIVATE_KEY (the private key from terraform output ssh_private_key_path)
+    - name: Setup SSH key
       run: |
-        mkdir -p ~/.kube
-        echo "${{ secrets.K3S_KUBECONFIG }}" | base64 -d > ~/.kube/config || echo "${{ secrets.K3S_KUBECONFIG }}" > ~/.kube/config
-        sed -i "s|127.0.0.1|${{ steps.get-ip.outputs.instance_ip }}|g" ~/.kube/config
-        sed -i "s|localhost|${{ steps.get-ip.outputs.instance_ip }}|g" ~/.kube/config
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/k3s_key.pem
+        chmod 600 ~/.ssh/k3s_key.pem
+        ssh-keyscan -H ${{ steps.get-ip.outputs.instance_ip }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
+    # Rollback deployment by executing kubectl commands on the remote k3s server
+    # kubectl uses /etc/rancher/k3s/k3s.yaml automatically when run on the k3s server
+    # This approach avoids exposing kubeconfig and ensures kubectl runs where k3s is installed
     - name: Rollback deployment
       run: |
+        INSTANCE_IP="${{ steps.get-ip.outputs.instance_ip }}"
+        SSH_KEY="$HOME/.ssh/k3s_key.pem"
         NAMESPACE="prod-cloud-infra-demo"
+        
         if [ "${{ github.event.inputs.environment }}" == "staging" ]; then
           NAMESPACE="prod-cloud-infra-demo-staging"
         fi
         
-        if [ -z "${{ github.event.inputs.revision }}" ]; then
-          echo "Rolling back to previous revision..."
-          kubectl rollout undo deployment/app -n $NAMESPACE
-        else
-          echo "Rolling back to revision ${{ github.event.inputs.revision }}..."
-          kubectl rollout undo deployment/app -n $NAMESPACE --to-revision=${{ github.event.inputs.revision }}
-        fi
-        
-        kubectl rollout status deployment/app -n $NAMESPACE --timeout=5m
-        echo "Rollback completed successfully"
+        # Execute rollback on the remote server
+        ssh -i "$SSH_KEY" ec2-user@$INSTANCE_IP bash -c "
+          set -e
+          
+          if [ -z '${{ github.event.inputs.revision }}' ]; then
+            echo 'Rolling back to previous revision...'
+            kubectl rollout undo deployment/app -n ${NAMESPACE}
+          else
+            echo 'Rolling back to revision ${{ github.event.inputs.revision }}...'
+            kubectl rollout undo deployment/app -n ${NAMESPACE} --to-revision=${{ github.event.inputs.revision }}
+          fi
+          
+          kubectl rollout status deployment/app -n ${NAMESPACE} --timeout=5m
+          echo 'Rollback completed successfully'
+        "
