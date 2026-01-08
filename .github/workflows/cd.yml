@@ -138,8 +138,8 @@ jobs:
     - name: Setup SSH key
       run: |
         mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/k3s_key.pem
-        chmod 600 ~/.ssh/k3s_key.pem
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/k3s_private_key.pem
+        chmod 600 ~/.ssh/k3s_private_key.pem
         ssh-keyscan -H ${{ steps.get-ip.outputs.instance_ip }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
     # Set up kustomize locally to build manifests before deploying
@@ -155,7 +155,7 @@ jobs:
       id: deploy
       run: |
         INSTANCE_IP="${{ steps.get-ip.outputs.instance_ip }}"
-        SSH_KEY="$HOME/.ssh/k3s_key.pem"
+        SSH_KEY="$HOME/.ssh/k3s_private_key.pem"
         IMAGE_TAG="latest"
         
         if [ "${{ github.ref }}" != "refs/heads/main" ]; then
@@ -234,8 +234,8 @@ jobs:
     - name: Setup SSH key
       run: |
         mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/k3s_key.pem
-        chmod 600 ~/.ssh/k3s_key.pem
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/k3s_private_key.pem
+        chmod 600 ~/.ssh/k3s_private_key.pem
         ssh-keyscan -H ${{ steps.get-ip.outputs.instance_ip }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
     # Set up kustomize locally to build manifests before deploying
@@ -251,7 +251,7 @@ jobs:
       id: deploy
       run: |
         INSTANCE_IP="${{ steps.get-ip.outputs.instance_ip }}"
-        SSH_KEY="$HOME/.ssh/k3s_key.pem"
+        SSH_KEY="$HOME/.ssh/k3s_private_key.pem"
         IMAGE_TAG="latest"
         
         if [ "${{ github.ref }}" != "refs/heads/main" ]; then
@@ -323,8 +323,8 @@ jobs:
     - name: Setup SSH key
       run: |
         mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/k3s_key.pem
-        chmod 600 ~/.ssh/k3s_key.pem
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/k3s_private_key.pem
+        chmod 600 ~/.ssh/k3s_privatekey.pem
         ssh-keyscan -H ${{ steps.get-ip.outputs.instance_ip }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
     # Rollback deployment by executing kubectl commands on the remote k3s server
@@ -332,7 +332,7 @@ jobs:
     - name: Rollback deployment
       run: |
         INSTANCE_IP="${{ steps.get-ip.outputs.instance_ip }}"
-        SSH_KEY="$HOME/.ssh/k3s_key.pem"
+        SSH_KEY="$HOME/.ssh/k3s_private_key.pem"
         
         # Determine which environment failed and rollback via SSH
         ssh -i "$SSH_KEY" ec2-user@$INSTANCE_IP bash -c "
