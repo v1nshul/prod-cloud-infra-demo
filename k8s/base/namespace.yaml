@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: prod-cloud-infra-demo
-  labels:
-    name: prod-cloud-infra-demo
-    managed-by: terraform
-
