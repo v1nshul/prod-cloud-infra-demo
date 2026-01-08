@@ -177,17 +177,18 @@ jobs:
         
         # SSH into the server and apply manifests
         # kubectl uses /etc/rancher/k3s/k3s.yaml automatically when run on the k3s server
-        ssh -i "$SSH_KEY" ec2-user@$INSTANCE_IP bash -c "
+        ssh -i "$SSH_KEY" ec2-user@$INSTANCE_IP << 'EOF'
           set -e
           
           # Apply manifests
-          kubectl apply -f /tmp/staging-manifests.yaml
+          sudo kubectl apply -f /tmp/staging-manifests.yaml
           
           # Wait for deployment rollout
-          kubectl rollout status deployment/app -n prod-cloud-infra-demo-staging --timeout=5m
+          sudo kubectl rollout status deployment/app -n prod-cloud-infra-demo-staging --timeout=5m
           
           echo 'Deployment completed successfully'
-        "
+        EOF
+
         
         # Get application URL
         APP_URL="http://$INSTANCE_IP"
@@ -273,17 +274,17 @@ jobs:
         
         # SSH into the server and apply manifests
         # kubectl uses /etc/rancher/k3s/k3s.yaml automatically when run on the k3s server
-        ssh -i "$SSH_KEY" ec2-user@$INSTANCE_IP bash -c "
+        ssh -i "$SSH_KEY" ec2-user@$INSTANCE_IP << 'EOF'
           set -e
           
           # Apply manifests
-          kubectl apply -f /tmp/production-manifests.yaml
+          sudo kubectl apply -f /tmp/production-manifests.yaml
           
           # Wait for deployment rollout
-          kubectl rollout status deployment/app -n prod-cloud-infra-demo --timeout=5m
+          sudo kubectl rollout status deployment/app -n prod-cloud-infra-demo --timeout=5m
           
           echo 'Deployment completed successfully'
-        "
+        EOF
         
         # Get application URL
         APP_URL="http://$INSTANCE_IP"
@@ -335,20 +336,20 @@ jobs:
         SSH_KEY="$HOME/.ssh/k3s_private_key.pem"
         
         # Determine which environment failed and rollback via SSH
-        ssh -i "$SSH_KEY" ec2-user@$INSTANCE_IP bash -c "
+        ssh -i "$SSH_KEY" ec2-user@$INSTANCE_IP << 'EOF'
           set -e
           
           if [ '${{ needs.deploy-staging.result }}' == 'failure' ]; then
             echo 'Rolling back staging deployment...'
-            kubectl rollout undo deployment/app -n prod-cloud-infra-demo-staging
-            kubectl rollout status deployment/app -n prod-cloud-infra-demo-staging --timeout=5m
+            sudo kubectl rollout undo deployment/app -n prod-cloud-infra-demo-staging
+            sudo kubectl rollout status deployment/app -n prod-cloud-infra-demo-staging --timeout=5m
             echo 'Rolled back staging deployment'
           fi
           
           if [ '${{ needs.deploy-production.result }}' == 'failure' ]; then
             echo 'Rolling back production deployment...'
-            kubectl rollout undo deployment/app -n prod-cloud-infra-demo
-            kubectl rollout status deployment/app -n prod-cloud-infra-demo --timeout=5m
+            sudo kubectl rollout undo deployment/app -n prod-cloud-infra-demo
+            sudo kubectl rollout status deployment/app -n prod-cloud-infra-demo --timeout=5m
             echo 'Rolled back production deployment'
           fi
-        "
+        EOF
