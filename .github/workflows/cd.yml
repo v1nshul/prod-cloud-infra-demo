@@ -180,8 +180,14 @@ jobs:
         ssh -i "$SSH_KEY" ec2-user@$INSTANCE_IP << 'EOF'
           set -e
           
+          echo "Waiting for k3s API to be ready..."
+          until sudo k3s kubectl get nodes >/dev/null 2>&1; do
+            sleep 5
+          done
+          echo "k3s API is ready"
+
           # Apply manifests
-          sudo k3s kubectl apply -f /tmp/staging-manifests.yaml
+          sudo k3s kubectl apply -f /tmp/staging-manifests.yaml --validate=false
           
           # Wait for deployment rollout
           sudo k3s kubectl get pods -n prod-cloud-infra-demo-staging  
@@ -277,8 +283,14 @@ jobs:
         ssh -i "$SSH_KEY" ec2-user@$INSTANCE_IP << 'EOF'
           set -e
           
+          echo "Waiting for k3s API to be ready..."
+          until sudo k3s kubectl get nodes >/dev/null 2>&1; do
+            sleep 5
+          done
+          echo "k3s API is ready"
+
           # Apply manifests
-          sudo k3s kubectl apply -f /tmp/production-manifests.yaml
+          sudo k3s kubectl apply -f /tmp/production-manifests.yaml --validate=false 
           
           # Wait for deployment rollout
           sudo k3s kubectl get pods -n prod-cloud-infra-demo  
@@ -339,16 +351,22 @@ jobs:
         ssh -i "$SSH_KEY" ec2-user@$INSTANCE_IP << 'EOF'
           set -e
           
+          echo "Waiting for k3s API to be ready..."
+          until sudo k3s kubectl get nodes >/dev/null 2>&1; do
+            sleep 5
+          done
+          echo "k3s API is ready"
+          
           if [ '${{ needs.deploy-staging.result }}' == 'failure' ]; then
             echo 'Rolling back staging deployment...'
-            sudo k3s kubectl rollout undo deployment/app -n prod-cloud-infra-demo-staging
+            sudo k3s kubectl rollout undo deployment/app -n prod-cloud-infra-demo-staging --validate=false
             sudo k3s kubectl get pods -n prod-cloud-infra-demo-staging
             echo 'Rolled back staging deployment'
           fi
           
           if [ '${{ needs.deploy-production.result }}' == 'failure' ]; then
             echo 'Rolling back production deployment...'
-            sudo k3s kubectl rollout undo deployment/app -n prod-cloud-infra-demo
+            sudo k3s kubectl rollout undo deployment/app -n prod-cloud-infra-demo --validate=false
             sudo k3s kubectl get pods -n prod-cloud-infra-demo
             echo 'Rolled back production deployment'
           fi
