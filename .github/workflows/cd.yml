@@ -190,7 +190,7 @@ jobs:
           sudo k3s kubectl apply -f /tmp/staging-manifests.yaml --validate=false
           
           # Wait for deployment rollout
-          sudo k3s kubectl get pods -n prod-cloud-infra-demo-staging  
+            
           
           echo 'Deployment completed successfully'
         EOF
@@ -360,7 +360,7 @@ jobs:
           if [ '${{ needs.deploy-staging.result }}' == 'failure' ]; then
             echo 'Rolling back staging deployment...'
             sudo k3s kubectl rollout undo deployment/app -n prod-cloud-infra-demo-staging --validate=false
-            sudo k3s kubectl get pods -n prod-cloud-infra-demo-staging
+            
             echo 'Rolled back staging deployment'
           fi
           
