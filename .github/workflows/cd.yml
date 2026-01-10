@@ -180,11 +180,6 @@ jobs:
         ssh -i "$SSH_KEY" ec2-user@$INSTANCE_IP << 'EOF'
           set -e
           
-          echo "Waiting for k3s API to be ready..."
-          until sudo k3s kubectl get nodes >/dev/null 2>&1; do
-            sleep 5
-          done
-          echo "k3s API is ready"
 
           # Apply manifests
           sudo k3s kubectl apply -f /tmp/staging-manifests.yaml --validate=false
@@ -282,12 +277,7 @@ jobs:
         # kubectl uses /etc/rancher/k3s/k3s.yaml automatically when run on the k3s server
         ssh -i "$SSH_KEY" ec2-user@$INSTANCE_IP << 'EOF'
           set -e
-          
-          echo "Waiting for k3s API to be ready..."
-          until sudo k3s kubectl get nodes >/dev/null 2>&1; do
-            sleep 5
-          done
-          echo "k3s API is ready"
+        
 
           # Apply manifests
           sudo k3s kubectl apply -f /tmp/production-manifests.yaml --validate=false 
@@ -350,12 +340,7 @@ jobs:
         # Determine which environment failed and rollback via SSH
         ssh -i "$SSH_KEY" ec2-user@$INSTANCE_IP << 'EOF'
           set -e
-          
-          echo "Waiting for k3s API to be ready..."
-          until sudo k3s kubectl get nodes >/dev/null 2>&1; do
-            sleep 5
-          done
-          echo "k3s API is ready"
+         
           
           if [ '${{ needs.deploy-staging.result }}' == 'failure' ]; then
             echo 'Rolling back staging deployment...'
