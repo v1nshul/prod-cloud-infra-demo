@@ -37,18 +37,18 @@ This project serves as a **reference implementation** for solo DevOps consultant
          │ Deploy
          ▼
 ┌─────────────────┐
-│  AWS EC2         │
-│  (t3.micro)      │
-│  ┌─────────────┐ │
-│  │   k3s       │ │
-│  │ Kubernetes  │ │
-│  │  ┌─────────┐│ │
-│  │  │Staging  ││ │
-│  │  └─────────┘│ │
-│  │  ┌─────────┐│ │
-│  │  │Production│ │
-│  │  └─────────┘│ │
-│  └─────────────┘ │
+│  AWS EC2        │
+│  (t3.micro)     │
+│  ┌─────────────┐│
+│  │   k3s       ││
+│  │ Kubernetes  ││
+│  │  ┌─────────┐││
+│  │  │Staging  │││
+│  │  └─────────┘││
+│  │  ┌─────────┐││
+│  │  │Production││
+│  │  └─────────┘││
+│  └─────────────┘│
 └────────┬────────┘
          │
          │ NGINX Ingress
